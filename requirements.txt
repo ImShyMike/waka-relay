@@ -1,0 +1,5 @@
+fastapi[standard]
+toml
+uvicorn
+uvicorn-worker
+httpx

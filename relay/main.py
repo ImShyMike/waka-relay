@@ -8,17 +8,19 @@ Copyright (c) 2025 ImShyMike
 
 import asyncio
 import base64
+import json
 import logging
 import sys
+import time
 from hmac import compare_digest
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 from urllib.parse import urlparse
 
 import httpx
 import toml
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
 CURRENT_VERSION = "0.1.0"
@@ -36,81 +38,141 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+httpx_logger = logging.getLogger("httpx")
+httpx_logger.setLevel(logging.WARNING)  # disable httpx logs on every request
+
 USER_HOME = str(Path.home())
 CONFIG_PATH = Path(USER_HOME) / ".waka-relay.toml"
 
 REQUEST_SEMAPHORE = asyncio.Semaphore(25)
 
+STATUS_MAP = {
+    200: "OK",
+    201: "Created",
+    202: "Accepted",
+    302: "Redirect",
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    429: "Too Many Requests",
+    500: "Server Error",
+}
+
 CONFIG = {}
+
+client = httpx.AsyncClient(
+    timeout=CONFIG.get("timeout", 25),
+    limits=httpx.Limits(
+        max_keepalive_connections=20, max_connections=100, keepalive_expiry=60
+    ),
+)
+
+
+def verify_key(authorization: str = Header()):
+    """Verifies the API key from the request header. (if required)
+
+    Args:
+        authorization (str, optional): _description_. Defaults to Header().
+
+    Raises:
+        HTTPException: Configuration not loaded.
+        HTTPException: API key is missing from the config.
+        HTTPException: API key is required.
+        HTTPException: Invalid API key format.
+        HTTPException: Invalid API key.
+    """
+    if not CONFIG:
+        logging.error("Configuration not loaded.")
+        raise HTTPException(status_code=500, detail="Configuration not loaded.")
+
+    if CONFIG.get("require_api_key", False):
+        if not CONFIG.get("api_key"):
+            logging.error("API key is missing from the config.")
+            raise HTTPException(
+                status_code=401, detail="API key is missing from the config."
+            )
+
+        if not authorization:
+            logging.info("API key is required but not provided.")
+            raise HTTPException(status_code=401, detail="API key is required.")
+
+        if not authorization.startswith("Basic "):
+            logging.info("Invalid API key format.")
+            raise HTTPException(status_code=401, detail="Invalid API key format.")
+
+        api_key = base64.b64decode(authorization.split(" ")[1]).decode()
+
+        if not compare_digest(api_key, CONFIG.get("api_key", "")):
+            logging.info("Invalid API key.")
+            raise HTTPException(status_code=401, detail="Invalid API key.")
+
+
+@app.get("/")
+async def root():
+    """Root endpoint."""
+
+    instances = CONFIG.get("instances", {})
+
+    if error := no_instances_check(instances):  # fail if no instances are configured
+        return error
+
+    return RedirectResponse(list(instances.keys())[0], status_code=307)
 
 
 @app.api_route(
     "/{full_path:path}",
     methods=["GET", "POST", "PUT", "DELETE"],
+    dependencies=[Depends(verify_key)],
 )
 async def catch_everything(request: Request, full_path: str):
     """Catches all incoming requests and forwards them to wakatime instances."""
 
+    start_time = time.perf_counter()
+
+    if CONFIG.get("debug", False):
+        with open("packets.log", "a", encoding="utf8") as f:
+            f.write(
+                f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} - {request.method} {request.url}\n"
+            )
+            if is_heartbeat(request):
+                incoming_body = await request.body()
+                try:
+                    body_json = json.loads(incoming_body.decode("utf-8"))
+                    json.dump(body_json, f, ensure_ascii=False, indent=4)
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    f.write(f"Raw body: {str(incoming_body)}\n")
+
     instances = CONFIG.get("instances", {})
 
-    if full_path == "":
-        return RedirectResponse(list(instances.keys())[0], status_code=307)
+    if error := no_instances_check(instances):  # fail if no instances are configured
+        return error
 
-    if not CONFIG:
-        logging.error("Configuration not loaded.")
-        return JSONResponse(
-            content={"error": "Configuration not loaded."}, status_code=500
-        )
+    instances_list = list(instances.items())
+    primary_instance, secondary_instances = instances_list[0], instances_list[1:]
 
-    if CONFIG.get("require_api_key", False):
-        if not CONFIG.get("api_key"):
-            logging.error("API key is missing from the config.")
-            return JSONResponse(
-                content={"error": "API key is not properly configured."},
-                status_code=401,
+    primary_response = await handle_single_request(
+        request=request,
+        url=make_url(primary_instance[0], full_path),
+        api_key=primary_instance[1],
+    )  # only wait for the primary response
+
+    if secondary_instances:
+        for instance in secondary_instances:
+            # use background tasks for secondary instances
+            asyncio.create_task(
+                handle_single_request(
+                    request=request,
+                    url=make_url(instance[0], full_path),
+                    api_key=instance[1],
+                    expected_status_code=primary_response["status_code"],
+                )
             )
 
-        auth_header = request.headers.get("authorization")
-
-        if not auth_header:
-            logging.info("API key is required but not provided.")
-            return JSONResponse(
-                content={"error": "API key is required."}, status_code=401
-            )
-
-        if not auth_header.startswith("Basic "):
-            logging.info("Invalid API key format.")
-            return JSONResponse(
-                content={"error": "Invalid API key format."}, status_code=401
-            )
-
-        api_key = base64.b64decode(auth_header.split(" ")[1]).decode()
-
-        if not compare_digest(api_key, CONFIG.get("api_key", "")):
-            logging.info("Invalid API key.")
-            return JSONResponse(content={"error": "Invalid API key."}, status_code=401)
-
-    if not instances:
-        logging.error("No WakaTime instances configured.")
-        return JSONResponse(
-            content={"error": "No WakaTime instances configured."}, status_code=500
-        )
-
-    async with httpx.AsyncClient(timeout=CONFIG.get("timeout", 25)) as client:
-        responses = [
-            handle_single_request(
-                request=request,
-                url=await make_url(url, full_path),
-                client=client,
-                api_key=key,
-            )
-            for url, key in instances.items()
-        ]
-        responses = await asyncio.gather(*responses)
-
-    primary_response = responses[0]
-
-    if full_path == "users/current/statusbar/today":
+    if full_path in (
+        "users/current/statusbar/today",
+        "users/current/status_bar/today",
+    ):  # add time suffix to time text
         grand_total = (
             primary_response.get("response", {}).get("data", {}).get("grand_total", {})
         )
@@ -119,13 +181,70 @@ async def catch_everything(request: Request, full_path: str):
                 "time_suffix", ""
             )
 
+    logging.info(  # mimic gunicorn's log format (but with request time)
+        '%s - %i ms - "%s %s HTTP/%s" %s %s',
+        request.client.host,  # type: ignore # ip address
+        (time.perf_counter() - start_time) * 1000,  # request time in ms
+        request.method,  # request method
+        request.url.path,  # request path
+        request.scope.get("http_version", "1.1"),  # http version
+        primary_response["status_code"],  # response status code
+        STATUS_MAP.get(primary_response["status_code"], ""),  # response status code as text
+    )
+
+    if CONFIG.get("debug", False):
+        with open("packets.log", "a", encoding="utf8") as f:
+            outgoing_body = primary_response["response"]
+            f.write("\nOutgoing response:\n")
+            json.dump(outgoing_body, f, ensure_ascii=False, indent=4)
+
     return JSONResponse(
         content=primary_response["response"],
         status_code=primary_response["status_code"],
+        headers=primary_response["headers"],
+        media_type=primary_response["content_type"],
     )
 
 
-async def make_url(url: str, full_path: str) -> str:
+def no_instances_check(instances: Dict[str, str]) -> None | HTTPException:
+    """Check if there are instances configured. Otherwise, return an error.
+
+    Args:
+        instances (Dict[str, str]): Instances dictionary.
+
+    Returns:
+        HTTPException: No instances are configured.
+    """
+    if not instances:
+        logging.error("No WakaTime instances configured.")
+        return HTTPException(
+            status_code=500, detail="No WakaTime instances configured."
+        )
+
+    return None
+
+
+def is_heartbeat(request: Request) -> bool:
+    """Check if a request is a heartbeat.
+
+    Args:
+        request (Request): Request object.
+
+    Returns:
+        bool: Is it a heartbeat?
+    """
+    url = str(request.url)
+    return (
+        request.headers.get("content-type", "").startswith("application/json")
+        and request.method == "POST"
+        and (
+            url.endswith("/users/current/heartbeats")
+            or url.endswith("/users/current/heartbeats.bulk")
+        )
+    )
+
+
+def make_url(url: str, full_path: str) -> str:
     """Constructs the full URL for the request."""
     parsed_url = urlparse(url)
 
@@ -138,8 +257,8 @@ async def make_url(url: str, full_path: str) -> str:
 async def handle_single_request(
     request: Request,
     url: str,
-    client: httpx.AsyncClient,
     api_key: str,
+    expected_status_code: int | None = None,
 ) -> Dict[str, Any]:
     """Handles a single request to a WakaTime instance."""
 
@@ -147,23 +266,66 @@ async def handle_single_request(
         body = await request.body()
 
         headers = dict(request.headers)
+        # i spent nearly 1 hour trying to figure out why auth was broken
+        # just to then decide "hm, i should print incoming headers" and then
+        # see that, no, the api key isnt sent as "Bearer (raw key)" but
+        # as "Basic (base64 encoded key)" :whyyy:
         headers["authorization"] = (
             f"Basic {base64.b64encode(api_key.encode()).decode()}"
         )
-        headers["user-agent"] += f"waka-relay/{CURRENT_VERSION}"
+        headers["user-agent"] += f" waka-relay/{CURRENT_VERSION}"
+        if is_heartbeat(request):
+            try:
+                json_body = await request.json()
+                # patch the user agent in each heartbeat
+                for i, item in enumerate(json_body):
+                    if isinstance(item, dict):
+                        json_body[i]["user_agent"] += f" waka-relay/{CURRENT_VERSION}"
+                body = json.dumps(json_body).encode("utf-8")
+
+            except json.JSONDecodeError:
+                logging.error("Failed to decode JSON body.")
+
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logging.critical("An unexpected error occurred: %s", e)
 
         headers.pop("host", None)
+        headers.pop("content-length", None)
 
         response = await client.request(
             method=request.method, url=url, content=body, headers=headers
         )
+
+        if expected_status_code and is_success(expected_status_code) != is_success(
+            response.status_code
+        ):
+            logging.error(
+                "Received unexpected status code %s from %s (expected %s)",
+                response.status_code,
+                url,
+                expected_status_code,
+            )
 
         return {
             "status_code": response.status_code,
             "response": response.json()
             if response.headers.get("content-type", "").startswith("application/json")
             else response.text,
+            "headers": response.headers,
+            "content_type": response.headers.get("content-type", ""),
         }
+
+
+def is_success(status_code: int) -> bool:
+    """Check if the status code indicates success.
+
+    Args:
+        status_code (int): Status code to check.
+
+    Returns:
+        bool: Is it a success?
+    """
+    return 200 <= status_code < 300
 
 
 def load_config(is_retry: bool = False) -> Dict:
@@ -214,6 +376,7 @@ def create_default_config() -> None:
                 "time_suffix": " (Relayed)",
                 "require_api_key": False,
                 "api_key": "",
+                "debug": False,
                 "instances": {"https://api.wakatime.com/api/v1": "API KEY HERE"},
             }
         }

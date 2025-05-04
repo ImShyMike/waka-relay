@@ -41,8 +41,13 @@ logger = logging.getLogger(__name__)
 httpx_logger = logging.getLogger("httpx")
 httpx_logger.setLevel(logging.WARNING)  # disable httpx logs on every request
 
-USER_HOME = str(Path.home())
-CONFIG_PATH = Path(USER_HOME) / ".waka-relay.toml"
+USER_HOME = Path.home()
+CURRENT_DIR = Path(__file__).parent
+
+CONFIG_PATHS = [
+    Path(USER_HOME) / ".waka-relay.toml",
+    Path(CURRENT_DIR).parent / ".waka-relay.toml",
+]
 
 REQUEST_SEMAPHORE = asyncio.Semaphore(25)
 
@@ -189,7 +194,9 @@ async def catch_everything(request: Request, full_path: str):
         request.url.path,  # request path
         request.scope.get("http_version", "1.1"),  # http version
         primary_response["status_code"],  # response status code
-        STATUS_MAP.get(primary_response["status_code"], ""),  # response status code as text
+        STATUS_MAP.get(
+            primary_response["status_code"], ""
+        ),  # response status code as text
     )
 
     if CONFIG.get("debug", False):
@@ -296,6 +303,9 @@ async def handle_single_request(
             method=request.method, url=url, content=body, headers=headers
         )
 
+        response_headers = dict(response.headers)
+        response_headers.pop("content-length", None)
+
         if expected_status_code and is_success(expected_status_code) != is_success(
             response.status_code
         ):
@@ -311,9 +321,22 @@ async def handle_single_request(
             "response": response.json()
             if response.headers.get("content-type", "").startswith("application/json")
             else response.text,
-            "headers": response.headers,
+            "headers": response_headers,
             "content_type": response.headers.get("content-type", ""),
         }
+
+
+def get_existing_config_path() -> Path:
+    """Get the an existing config path.
+
+    Returns:
+        Path: The first existing config path.
+    """
+    for path in CONFIG_PATHS:
+        if path.exists():
+            return path
+
+    return CONFIG_PATHS[0]  # fallback to the first path
 
 
 def is_success(status_code: int) -> bool:
@@ -335,7 +358,7 @@ def load_config(is_retry: bool = False) -> Dict:
         is_retry (bool, optional): Set if the read is a retry. Defaults to False.
     """
     try:
-        config = toml.load(CONFIG_PATH)
+        config = toml.load(get_existing_config_path())
 
         if "relay" not in config:
             logging.error("Relay section not found in config file.")
@@ -381,7 +404,7 @@ def create_default_config() -> None:
             }
         }
 
-        with open(CONFIG_PATH, "w", encoding="utf8") as f:
+        with open(get_existing_config_path(), "w", encoding="utf8") as f:
             toml.dump(config, f)
 
     except Exception as e:  # pylint: disable=broad-exception-caught

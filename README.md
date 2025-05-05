@@ -46,7 +46,7 @@ $ uvicorn relay.main:app
 
 ```bash
 # First start by building the package
-$ docker build -t waka-relay .`
+$ docker build -t waka-relay .
 
 # Then run the container
 $ docker run -d \

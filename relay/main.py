@@ -182,8 +182,8 @@ async def catch_everything(request: Request, full_path: str):
             primary_response.get("response", {}).get("data", {}).get("grand_total", {})
         )
         if grand_total.get("text"):
-            primary_response["response"]["data"]["grand_total"]["text"] += CONFIG.get(
-                "time_suffix", ""
+            grand_total["text"] = CONFIG.get("time_text", "%TEXT% (Relayed)").replace(
+                "%TEXT%", grand_total["text"]
             )
 
     logging.info(  # mimic gunicorn's log format (but with request time)
@@ -396,7 +396,7 @@ def create_default_config() -> None:
                 "port": "25892",
                 "workers": 4,
                 "timeout": 25,
-                "time_suffix": " (Relayed)",
+                "time_text": "%TEXT% (Relayed)",
                 "require_api_key": False,
                 "api_key": "",
                 "debug": False,

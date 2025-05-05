@@ -3,10 +3,11 @@ host = "0.0.0.0" # Listen on all interfaces
 port = 25892 # Default port for Waka Relay
 workers = 4 # Number of worker threads
 timeout = 25 # Timeout for outbound requests in seconds
-time_suffix = " (Relayed)" # Suffix to add to time text (displayed in the IDE)
+time_text = "%TEXT% (Relayed)" # Text to display in the IDE
 require_api_key = false # Require API key for authentication
 api_key = "" # API key to use for authentication
 debug = false # Enable debug logging of requests
 
 [relay.instances] # List of instances to relay to (first entry is the primary instance)
-"https://api.wakatime.com/api/v1" = "REDACTED"
+"https://api.wakatime.com/api/v1" = "WAKATIME API KEY"
+"https://hackatime.hackclub.com/api/hackatime/v1" = "HACKATIME API KEY"

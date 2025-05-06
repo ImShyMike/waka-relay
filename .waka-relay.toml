@@ -3,6 +3,7 @@ host = "0.0.0.0" # Listen on all interfaces
 port = 25892 # Default port for Waka Relay
 workers = 4 # Number of worker threads
 timeout = 25 # Timeout for outbound requests in seconds
+retries = 3 # Number of retries for failed requests
 time_text = "%TEXT% (Relayed)" # Text to display in the IDE
 require_api_key = false # Require API key for authentication
 api_key = "" # API key to use for authentication

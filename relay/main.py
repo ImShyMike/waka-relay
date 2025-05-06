@@ -299,9 +299,31 @@ async def handle_single_request(
         headers.pop("host", None)
         headers.pop("content-length", None)
 
-        response = await client.request(
-            method=request.method, url=url, content=body, headers=headers
-        )
+        response = None
+        for retry in range(CONFIG.get("retries", 3)):
+            if retry > 0:
+                logging.warning("Retrying request to %s (attempt %d)", url, retry + 1)
+
+            try:
+                response = await client.request(
+                    method=request.method, url=url, content=body, headers=headers
+                )
+                break  # dont retry if the request was successful
+
+            except httpx.RequestError as e:
+                logging.error("Request to %s failed: %s", url, e)
+
+                if retry == (CONFIG.get("retries", 2) - 1):
+                    logging.error("Max retries reached. Request failed...")
+
+        if response is None:
+            logging.error("No response received from %s", url)
+            return {
+                "status_code": 500,
+                "response": {"error": "No response received"},
+                "headers": {},
+                "content_type": "",
+            }
 
         response_headers = dict(response.headers)
         response_headers.pop("content-length", None)

@@ -22,6 +22,14 @@
   
 </div>
 
+## Features
+
+* ✅ Multi-instance support
+* ✅ Self-hosted
+* ✅ Key authentication
+* ✅ Highly configurable
+* ✅ Fully relays WakaTime requests
+
 ## Installation
 
 Start by cloning the repo:
@@ -56,14 +64,6 @@ $ docker run -d \
   waka-relay
 ```
 
-## Features
-
-* ✅ Multi-instance support
-* ✅ Self-hosted
-* ✅ Key authentication
-* ✅ Highly configurable
-* ✅ Fully relays WakaTime requests
-
 ## Example config
 
 ```toml
@@ -88,6 +88,7 @@ For a full config example with an explanation check out the [example config file
 |`port`|`25892`|Port for the webserver to run on|
 |`workers`|`4`|Worker count for the webserver|
 |`timeout`|`25`|Timeout value for the relayed requests (in seconds)|
+|`retries`|`3`|Number of retries for failed requests|
 |`time_text`|`"%TEXT% (Relayed)"`|Text to display in the IDE (%TEXT% is replaced by what the api retuns)|
 |`require_api_key`|`""`|Whether or not to require an API key|
 |`api_key`|`""`|The API key to use if `require_api_key` is true|

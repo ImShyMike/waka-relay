@@ -23,7 +23,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-CURRENT_VERSION = "0.1.0"
+CURRENT_VERSION = "0.1.1"
 
 app = FastAPI(
     title="WakaTime Relay",
@@ -38,12 +38,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-httpx_logger = logging.getLogger("httpx")
-httpx_logger.setLevel(logging.WARNING)  # disable httpx logs on every request
-
 USER_HOME = Path.home()
 CURRENT_DIR = Path(__file__).parent
 
+CONFIG = {}
 CONFIG_PATHS = [
     Path(USER_HOME) / ".waka-relay.toml",
     Path(CURRENT_DIR).parent / ".waka-relay.toml",
@@ -386,6 +384,11 @@ def load_config(is_retry: bool = False) -> Dict:
             logging.error("Relay section not found in config file.")
             raise ValueError("Relay section not found in config file.")
 
+        if config["relay"].get("debug", False):
+            logging.info("Config file loaded successfully.")
+            logging.info("Config file path: %s", get_existing_config_path())
+            logging.info("Config file content: %s", config)
+
         return config["relay"]
 
     except FileNotFoundError:
@@ -433,10 +436,13 @@ def create_default_config() -> None:
         logging.critical("An error occurred while creating the default config: %s", e)
         sys.exit(1)
 
-
 CONFIG = load_config()
 
 if __name__ == "__main__":
+    if CONFIG.get("debug", False):
+        httpx_logger = logging.getLogger("httpx")
+        httpx_logger.setLevel(logging.WARNING)  # disable httpx logs on every request
+
     uvicorn.run(
         "main:app",
         host=CONFIG.get("host", "0.0.0.0"),

@@ -38,6 +38,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+RELAY_SIGNATURE = f"waka-relay/{CURRENT_VERSION}"
+
 USER_HOME = Path.home()
 CURRENT_DIR = Path(__file__).parent
 
@@ -100,11 +102,13 @@ def verify_key(authorization: str = Header()):
             logging.info("API key is required but not provided.")
             raise HTTPException(status_code=401, detail="API key is required.")
 
-        if not authorization.startswith("Basic "):
+        if authorization.startswith("Basic "):
+            api_key = base64.b64decode(authorization.split(" ")[1]).decode()
+        elif authorization.startswith("Bearer "):
+            api_key = authorization.split(" ")[1]
+        else:
             logging.info("Invalid API key format.")
             raise HTTPException(status_code=401, detail="Invalid API key format.")
-
-        api_key = base64.b64decode(authorization.split(" ")[1]).decode()
 
         if not compare_digest(api_key, CONFIG.get("api_key", "")):
             logging.info("Invalid API key.")
@@ -180,9 +184,14 @@ async def catch_everything(request: Request, full_path: str):
             primary_response.get("response", {}).get("data", {}).get("grand_total", {})
         )
         if grand_total.get("text"):
-            grand_total["text"] = CONFIG.get("time_text", "%TEXT% (Relayed)").replace(
-                "%TEXT%", grand_total["text"]
-            )
+            primary_response["response"]["data"]["grand_total"]["text"] = CONFIG.get(
+                "time_text", "%TEXT% (Relayed)"
+            ).replace("%TEXT%", grand_total["text"])
+
+    # fix for heartbeats.bulk endpoint to match the format expected by wakatime-cli
+    if is_heartbeat(request) and isinstance(primary_response["response"], list):
+        if isinstance(primary_response["response"], list):
+            primary_response["response"] = {"responses": primary_response["response"]}
 
     logging.info(  # mimic gunicorn's log format (but with request time)
         '%s - %i ms - "%s %s HTTP/%s" %s %s',
@@ -202,6 +211,27 @@ async def catch_everything(request: Request, full_path: str):
             outgoing_body = primary_response["response"]
             f.write("\nOutgoing response:\n")
             json.dump(outgoing_body, f, ensure_ascii=False, indent=4)
+
+    if CONFIG.get("debug", False):
+        with open("packets.log", "a", encoding="utf8") as f:
+            f.write(
+                f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} - {request.method} {request.url}\n"
+            )
+            if is_heartbeat(request):
+                try:
+                    json.dump(
+                        primary_response["response"], f, ensure_ascii=False, indent=4
+                    )
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    f.write(f"Raw body: {str(primary_response['response'])}\n")
+
+    # this line...
+    # it made me have to read a bunch of source code from
+    # wakatime-cli and the vscode extension to try to figure out
+    # what was broken because even with the verbose option
+    # it was failing silently and saying i was offline...
+    # turns out it was logging the fail as "debug" and not "error"
+    primary_response["headers"].pop("content-encoding", None)
 
     return JSONResponse(
         content=primary_response["response"],
@@ -278,14 +308,20 @@ async def handle_single_request(
         headers["authorization"] = (
             f"Basic {base64.b64encode(api_key.encode()).decode()}"
         )
-        headers["user-agent"] += f" waka-relay/{CURRENT_VERSION}"
+        if RELAY_SIGNATURE not in headers.get("user-agent", ""):
+            headers["user-agent"] = (
+                headers.get("user-agent", "") + f" {RELAY_SIGNATURE}"
+            )
+
         if is_heartbeat(request):
             try:
                 json_body = await request.json()
                 # patch the user agent in each heartbeat
                 for i, item in enumerate(json_body):
-                    if isinstance(item, dict):
-                        json_body[i]["user_agent"] += f" waka-relay/{CURRENT_VERSION}"
+                    if isinstance(item, dict) and RELAY_SIGNATURE not in item.get(
+                        "user_agent", ""
+                    ):
+                        json_body[i]["user_agent"] += f" {RELAY_SIGNATURE}"
                 body = json.dumps(json_body).encode("utf-8")
 
             except json.JSONDecodeError:
@@ -306,6 +342,17 @@ async def handle_single_request(
                 response = await client.request(
                     method=request.method, url=url, content=body, headers=headers
                 )
+                if CONFIG.get("debug", False):
+                    with open("packets.log", "a", encoding="utf8") as f:
+                        f.write(
+                            f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} - {request.method} {url}\n"
+                        )
+                        if is_heartbeat(request):
+                            try:
+                                body_json = json.loads(body.decode("utf-8"))
+                                json.dump(body_json, f, ensure_ascii=False, indent=4)
+                            except (json.JSONDecodeError, UnicodeDecodeError):
+                                f.write(f"Raw body: {str(body)}\n")
                 break  # dont retry if the request was successful
 
             except httpx.RequestError as e:
@@ -336,11 +383,15 @@ async def handle_single_request(
                 expected_status_code,
             )
 
+        request_response = (
+            response.json()
+            if response.headers.get("content-type", "").startswith("application/json")
+            else response.text
+        )
+
         return {
             "status_code": response.status_code,
-            "response": response.json()
-            if response.headers.get("content-type", "").startswith("application/json")
-            else response.text,
+            "response": request_response,
             "headers": response_headers,
             "content_type": response.headers.get("content-type", ""),
         }
@@ -383,11 +434,6 @@ def load_config(is_retry: bool = False) -> Dict:
         if "relay" not in config:
             logging.error("Relay section not found in config file.")
             raise ValueError("Relay section not found in config file.")
-
-        if config["relay"].get("debug", False):
-            logging.info("Config file loaded successfully.")
-            logging.info("Config file path: %s", get_existing_config_path())
-            logging.info("Config file content: %s", config)
 
         return config["relay"]
 
@@ -436,12 +482,17 @@ def create_default_config() -> None:
         logging.critical("An error occurred while creating the default config: %s", e)
         sys.exit(1)
 
+
 CONFIG = load_config()
 
 if __name__ == "__main__":
     if CONFIG.get("debug", False):
         httpx_logger = logging.getLogger("httpx")
         httpx_logger.setLevel(logging.WARNING)  # disable httpx logs on every request
+
+        logging.info("Config file loaded successfully.")
+        logging.info("Config file path: %s", get_existing_config_path())
+        logging.info("Config file content: %s", CONFIG)
 
     uvicorn.run(
         "main:app",

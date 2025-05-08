@@ -30,6 +30,14 @@
 * ✅ Highly configurable
 * ✅ Fully relays WakaTime requests
 
+## Table of contents
+
+* [Installation](#installation)
+* [Example config](#example-config)
+* [Configuration options](#configuration-options)
+* [Known compatible backends](#known-compatible-backends)
+* [Issues](#issues)
+
 ## Installation
 
 Start by cloning the repo:
@@ -93,3 +101,18 @@ For a full config example with an explanation check out the [example config file
 |`require_api_key`|`""`|Whether or not to require an API key|
 |`api_key`|`""`|The API key to use if `require_api_key` is true|
 |`debug`|`false`|Whether or not to enable debug logging|
+
+## Known compatible backends
+
+This relay is compatible with the following backend servers:
+
+* [WakaTime](https://github.com/wakatime)
+* [Wakapi](https://github.com/muety/wakapi)
+* [Hackatime](https://github.com/hackclub/hackatime)
+* [Hackatime (old)](https://github.com/hackclub/archived-hacktime)
+<br>
+<sub>(all of the above servers were tested using the vscode extension)</sub>
+
+## Issues
+
+Please feel free to [open an issue](https://github.com/ImShyMike/waka-relay/issues/new) on the github if you come across a bug or crash as this project has not been fully tested and may have some bugs.

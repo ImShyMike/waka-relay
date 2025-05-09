@@ -38,20 +38,29 @@
 * [Known compatible backends](#known-compatible-backends)
 * [Issues](#issues)
 
-## Installation
+## Instalation
+
+Python (>=3.11) is required to run the program, please install it before continuing with the instalation.
 
 Start by cloning the repo:
 
 ```bash
+# Clone the repository
 $ git clone https://github.com/ImShyMike/waka-relay.git
+
+# Move into the project's folder
+$ cd waka-relay
 ```
 
-Then follow any of the following instructions:
+Then follow any of the following guides:
 
 ### Quick run
 
 ```bash
-# Run the app using python
+# Install the dependencies
+$ pip install -r requirements.txt
+
+# Then run the app using python 
 $ python relay/main.py
 
 # Or use uvicorn directly (WARNING: this will ignore the host, port, and worker configuration)
@@ -61,7 +70,7 @@ $ uvicorn relay.main:app
 ### Using docker
 
 ```bash
-# First start by building the package
+# First start by building the docker image
 $ docker build -t waka-relay .
 
 # Then run the container

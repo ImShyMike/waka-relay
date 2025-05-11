@@ -35,18 +35,19 @@
 ## Table of contents
 
 * [Installation](#installation)
+  * [Quick run](#quick-run)
+  * [Python](#python)
+  * [Using docker](#using-docker)
 * [Example config](#example-config)
 * [Configuration options](#configuration-options)
 * [Known compatible backends](#known-compatible-backends)
 * [Issues](#issues)
 
-## Instalation
-
-Python (>=3.11) is required to run the program, please install it before continuing with the instalation.
-
-Python (>=3.8) is required to run the program, please install it before continuing with the installation.
+## Installation
 
 ### Quick run
+
+Python (>=3.8) is required for this installation type, please install it before continuing.
 
 ```bash
 # Install the package
@@ -57,6 +58,8 @@ $ wakarelay
 ```
 
 ### Python
+
+Python (>=3.8) is required for this installation type, please install it before continuing.
 
 ```bash
 # Clone the repository

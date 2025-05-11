@@ -13,9 +13,9 @@
   </p>
 
   <h3>
-    <a href="#features">Features</a>
-    <span> | </span>
     <a href="#installation">Installation</a>
+    <span> | </span>
+    <a href="#how-it-works">How it works</a>
     <span> | </span>
     <a href="https://github.com/ImShyMike/waka-relay/issues">Issues</a>
     <span> | </span>
@@ -97,6 +97,10 @@ $ docker run -d \
   --name waka-relay \
   waka-relay
 ```
+
+## How it works
+
+![waka-relay graph](https://raw.githubusercontent.com/ImShyMike/waka-relay/refs/heads/main/assets/graph.png)
 
 ## Example config
 

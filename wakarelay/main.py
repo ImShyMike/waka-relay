@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-WakaTime Relay - Server that relays WakaTime requests to multiple instances.
+waka-relay - A self-hosted app that relays WakaTime heartbeats to multiple instances.
 Copyright (c) 2025 ImShyMike
 (not affiliated with WakaTime)
 """
@@ -23,11 +23,11 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-CURRENT_VERSION = "0.1.2"
+CURRENT_VERSION = "0.1.3"
 
 app = FastAPI(
-    title="WakaTime Relay",
-    description="Server that relays WakaTime requests to multiple instances.",
+    title="waka-relay",
+    description="A self-hosted app that relays WakaTime heartbeats to multiple instances.",
     version=CURRENT_VERSION,
 )
 

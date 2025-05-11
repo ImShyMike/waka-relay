@@ -1,7 +1,7 @@
 
 <div align="center">
 
-  <img src="assets/waka-relay.png" alt="waka‑relay logo" width="256" />
+  <img src="https://raw.githubusercontent.com/ImShyMike/waka-relay/refs/heads/main/assets/waka-relay.png" alt="waka‑relay logo" width="256" />
 
   <span style="font-size: 1.3rem;">A self-hosted app that relays WakaTime heartbeats to multiple instances</span>
 

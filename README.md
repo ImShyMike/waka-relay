@@ -40,7 +40,9 @@
 * [Known compatible backends](#known-compatible-backends)
 * [Issues](#issues)
 
-## Installation
+## Instalation
+
+Python (>=3.11) is required to run the program, please install it before continuing with the instalation.
 
 Python (>=3.8) is required to run the program, please install it before continuing with the installation.
 

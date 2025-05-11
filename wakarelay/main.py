@@ -23,7 +23,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-CURRENT_VERSION = "0.1.1"
+CURRENT_VERSION = "0.1.2"
 
 app = FastAPI(
     title="WakaTime Relay",
@@ -496,8 +496,10 @@ def main():
         logging.info("Config file path: %s", get_existing_config_path())
         logging.info("Config file content: %s", CONFIG)
 
+    entrypoint = "wakarelay.main:app" if __name__ == "wakarelay.main" else "main:app"
+
     uvicorn.run(
-        "main:app",
+        entrypoint,
         host=CONFIG.get("host", "0.0.0.0"),
         port=CONFIG.get("port", 25892),
         log_level="info",

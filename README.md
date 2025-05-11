@@ -102,6 +102,8 @@ $ docker run -d \
 
 ![waka-relay graph](https://raw.githubusercontent.com/ImShyMike/waka-relay/refs/heads/main/assets/graph.png)
 
+A "WakaTime instance" does not need to be the real WakaTime server but it can also be anything that implements the same protocol. ([compatible instance backends](#known-compatible-backends))
+
 ## Example config
 
 The configuration file must be located either in `~/.waka-relay.toml` or `./.waka-relay.toml` (first config file found is used)

@@ -23,7 +23,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-CURRENT_VERSION = "0.1.5"
+CURRENT_VERSION = "0.1.6"
 
 app = FastAPI(
     title="waka-relay",

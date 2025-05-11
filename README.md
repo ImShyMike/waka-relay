@@ -18,6 +18,8 @@
     <a href="#installation">Installation</a>
     <span> | </span>
     <a href="https://github.com/ImShyMike/waka-relay/issues">Issues</a>
+    <span> | </span>
+    <a href="https://pypi.org/project/waka-relay">PyPI Package</a>
   </h3>
   
 </div>
@@ -40,18 +42,31 @@
 
 ## Installation
 
-Start by cloning the repo:
-
-```bash
-$ git clone https://github.com/ImShyMike/waka-relay.git
-```
-
-Then follow any of the following instructions:
+Python (>=3.8) is required to run the program, please install it before continuing with the installation.
 
 ### Quick run
 
 ```bash
-# Run the app using python
+# Install the package
+$ pip install waka-relay
+
+# Then run the app
+$ wakarelay
+```
+
+### Python
+
+```bash
+# Clone the repository
+$ git clone https://github.com/ImShyMike/waka-relay.git
+
+# Move into the project's folder
+$ cd waka-relay
+
+# Install the dependencies
+$ pip install -r requirements.txt
+
+# Then run the app using python 
 $ python relay/main.py
 
 # Or use uvicorn directly (WARNING: this will ignore the host, port, and worker configuration)
@@ -61,7 +76,13 @@ $ uvicorn relay.main:app
 ### Using docker
 
 ```bash
-# First start by building the package
+# Clone the repository
+$ git clone https://github.com/ImShyMike/waka-relay.git
+
+# Move into the project's folder
+$ cd waka-relay
+
+# First start by building the docker image
 $ docker build -t waka-relay .
 
 # Then run the container
@@ -73,6 +94,8 @@ $ docker run -d \
 ```
 
 ## Example config
+
+The configuration file must be located either in `~/.waka-relay.toml` or `./.waka-relay.toml` (first config file found is used)
 
 ```toml
 [relay]
@@ -110,7 +133,7 @@ This relay is compatible with the following backend servers:
 * [Wakapi](https://github.com/muety/wakapi)
 * [Hackatime](https://github.com/hackclub/hackatime)
 * [Hackatime (old)](https://github.com/hackclub/archived-hacktime)
-<br>
+
 <sub>(all of the above servers were tested using the vscode extension)</sub>
 
 ## Issues

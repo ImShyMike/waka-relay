@@ -14,7 +14,7 @@ import sys
 import time
 from hmac import compare_digest
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 import httpx
@@ -241,7 +241,7 @@ async def catch_everything(request: Request, full_path: str):
     )
 
 
-def no_instances_check(instances: Dict[str, str]) -> None | HTTPException:
+def no_instances_check(instances: Dict[str, str]) -> Optional[HTTPException]:
     """Check if there are instances configured. Otherwise, return an error.
 
     Args:
@@ -293,7 +293,7 @@ async def handle_single_request(
     request: Request,
     url: str,
     api_key: str,
-    expected_status_code: int | None = None,
+    expected_status_code: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Handles a single request to a WakaTime instance."""
 
@@ -485,7 +485,9 @@ def create_default_config() -> None:
 
 CONFIG = load_config()
 
-if __name__ == "__main__":
+
+def main():
+    """Main function to run the server."""
     if CONFIG.get("debug", False):
         httpx_logger = logging.getLogger("httpx")
         httpx_logger.setLevel(logging.WARNING)  # disable httpx logs on every request
@@ -501,3 +503,7 @@ if __name__ == "__main__":
         log_level="info",
         workers=CONFIG.get("workers", None),
     )
+
+
+if __name__ == "__main__":
+    main()

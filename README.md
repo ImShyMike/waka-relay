@@ -80,6 +80,22 @@ $ uvicorn relay.main:app
 
 ### Using docker
 
+Using the prebuilt image:
+
+```bash
+# Pull the docker image
+$ docker pull shymike/waka-relay
+
+# Then run the container
+$ docker run -d \
+  -p 25892:25892 \
+  -v ~/.waka-relay.toml:/root/.waka-relay.toml \
+  --name waka-relay \
+  waka-relay
+```
+
+Or build the image yourself:
+
 ```bash
 # Clone the repository
 $ git clone https://github.com/ImShyMike/waka-relay.git
@@ -88,7 +104,7 @@ $ git clone https://github.com/ImShyMike/waka-relay.git
 $ cd waka-relay
 
 # First start by building the docker image
-$ docker build -t waka-relay .
+$ docker build --network host -t waka-relay .
 
 # Then run the container
 $ docker run -d \

@@ -501,7 +501,7 @@ def main():
     uvicorn.run(
         entrypoint,
         host=CONFIG.get("host", "0.0.0.0"),
-        port=CONFIG.get("port", 25892),
+        port=int(CONFIG.get("port", 25892)),
         log_level="info",
         workers=CONFIG.get("workers", None),
     )

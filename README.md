@@ -144,11 +144,11 @@ For a full config example with an explanation check out the [example config file
 |----------|---------------|-------------|
 |`host`|`"0.0.0.0"`|Host for the webserver to listen on|
 |`port`|`25892`|Port for the webserver to run on|
-|`workers`|`4`|Worker count for the webserver|
+|`workers`|`1`|Worker process count for the webserver|
 |`timeout`|`25`|Timeout value for the relayed requests (in seconds)|
 |`retries`|`3`|Number of retries for failed requests|
 |`time_text`|`"%TEXT% (Relayed)"`|Text to display in the IDE (%TEXT% is replaced by what the api retuns)|
-|`require_api_key`|`""`|Whether or not to require an API key|
+|`require_api_key`|`false`|Whether or not to require an API key|
 |`api_key`|`""`|The API key to use if `require_api_key` is true|
 |`debug`|`false`|Whether or not to enable debug logging|
 

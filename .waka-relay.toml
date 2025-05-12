@@ -1,13 +1,14 @@
+# File with all of the default settings for Waka Relay
 [relay]
-host = "0.0.0.0" # Listen on all interfaces
-port = 25892 # Default port for Waka Relay
-workers = 4 # Number of worker threads
-timeout = 25 # Timeout for outbound requests in seconds
+host = "0.0.0.0" # Host for the webserver to listen on
+port = 25892 # Port for the webserver to run on
+workers = 1 # Worker count for the webserver
+timeout = 25 # Timeout value for the relayed requests (in seconds)
 retries = 3 # Number of retries for failed requests
-time_text = "%TEXT% (Relayed)" # Text to display in the IDE
-require_api_key = false # Require API key for authentication
-api_key = "" # API key to use for authentication
-debug = false # Enable debug logging of requests
+time_text = "%TEXT% (Relayed)" # Text to display in the IDE (%TEXT% is replaced by what the api retuns)
+require_api_key = false # Whether or not to require an API key
+api_key = "" # The API key to use if require_api_key is true
+debug = false # Whether or not to enable debug logging
 
 [relay.instances] # List of instances to relay to (first entry is the primary instance)
 "https://api.wakatime.com/api/v1" = "WAKATIME API KEY"

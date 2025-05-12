@@ -23,7 +23,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-CURRENT_VERSION = "0.1.6"
+CURRENT_VERSION = "0.1.7"
 
 app = FastAPI(
     title="waka-relay",
@@ -465,7 +465,8 @@ def create_default_config() -> None:
             "relay": {
                 "host": "0.0.0.0",
                 "port": "25892",
-                "workers": 4,
+                "workers": 1,
+                "retries": 3,
                 "timeout": 25,
                 "time_text": "%TEXT% (Relayed)",
                 "require_api_key": False,
@@ -496,6 +497,7 @@ def main():
         logging.info("Config file path: %s", get_existing_config_path())
         logging.info("Config file content: %s", CONFIG)
 
+    # allow for running via pip entrypoint
     entrypoint = "wakarelay.main:app" if __name__ == "wakarelay.main" else "main:app"
 
     uvicorn.run(
@@ -503,7 +505,7 @@ def main():
         host=CONFIG.get("host", "0.0.0.0"),
         port=int(CONFIG.get("port", 25892)),
         log_level="info",
-        workers=CONFIG.get("workers", None),
+        workers=CONFIG.get("workers", 1),
     )
 
 

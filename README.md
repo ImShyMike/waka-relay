@@ -13,7 +13,9 @@
   </p>
 
   <h3>
-    <a href="#installation">Installation</a>
+    <a href="#setup">Setup</a>
+    <span> | </span>
+    <a href="#usage">Usage</a>
     <span> | </span>
     <a href="#how-it-works">How it works</a>
     <span> | </span>
@@ -34,16 +36,17 @@
 
 ## Table of contents
 
-* [Installation](#installation)
+* [Setup](#setup)
   * [Quick run](#quick-run)
   * [Python](#python)
   * [Using docker](#using-docker)
+* [Usage](#usage)
 * [Example config](#example-config)
 * [Configuration options](#configuration-options)
 * [Known compatible backends](#known-compatible-backends)
 * [Issues](#issues)
 
-## Installation
+## Setup
 
 ### Quick run
 
@@ -113,6 +116,18 @@ $ docker run -d \
   --name waka-relay \
   waka-relay
 ```
+
+## Usage
+
+In your `~/.wakatime.cfg` file, set the API url to the adress of the `waka-relay` server. (this example uses localhost)
+
+```cfg
+[settings]
+api_key = 39949664-5a5f-4c7d-95b2-44a864f67b6a
+api_url = http://localhost:25892
+```
+
+(`api_key` must be a valid UUID, even if `require_api_key` is `false`)
 
 ## How it works
 

@@ -176,6 +176,13 @@ async def catch_everything(request: Request, full_path: str):
                 )
             )
 
+    if not isinstance(primary_response, dict):
+        logging.error("Invalid response from primary instance.")
+        logging.error(primary_response)
+        return HTTPException(
+            status_code=500, detail="Invalid response from primary instance."
+        )
+
     if full_path in (
         "users/current/statusbar/today",
         "users/current/status_bar/today",

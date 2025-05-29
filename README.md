@@ -175,7 +175,7 @@ This relay is compatible with the following backend servers:
 * [Wakapi](https://github.com/muety/wakapi)
 * [Hackatime](https://github.com/hackclub/hackatime)
 * [Hackatime (old)](https://github.com/hackclub/archived-hacktime)
-* [Quackatime](https://github.com/SkyfallWasTaken/quackatime)
+* [OtterTime](https://github.com/SkyfallWasTaken/ottertime)
 
 
 <sub>(all of the above servers were tested using the vscode extension)</sub>

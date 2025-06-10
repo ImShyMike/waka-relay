@@ -38,6 +38,7 @@
 
 * [Setup](#setup)
   * [Quick run](#quick-run)
+  * [Uv](#uv)
   * [Python](#python)
   * [Using docker](#using-docker)
 * [Usage](#usage)
@@ -57,7 +58,19 @@ Python (>=3.8) is required for this installation type, please install it before 
 $ pip install waka-relay
 
 # Then run the app
-$ wakarelay
+$ waka-relay
+```
+
+### Uv
+
+Using the [uv](https://docs.astral.sh/uv) package manager (this method does not require a [venv](https://docs.python.org/3/library/venv.html) on non Windows systems):
+
+```bash
+# Install the tool
+$ uv tool install waka-relay
+
+# Run it
+$ uv tool run waka-relay
 ```
 
 ### Python
@@ -75,10 +88,10 @@ $ cd waka-relay
 $ pip install -r requirements.txt
 
 # Then run the app using python 
-$ python relay/main.py
+$ python wakarelay/main.py
 
 # Or use uvicorn directly (WARNING: this will ignore the host, port, and worker configuration)
-$ uvicorn relay.main:app
+$ uvicorn wakarelay.main:app
 ```
 
 ### Using docker
@@ -176,7 +189,6 @@ This relay is compatible with the following backend servers:
 * [Hackatime](https://github.com/hackclub/hackatime)
 * [Hackatime (old)](https://github.com/hackclub/archived-hacktime)
 * [OtterTime](https://github.com/SkyfallWasTaken/ottertime)
-
 
 <sub>(all of the above servers were tested using the vscode extension)</sub>
 

@@ -23,7 +23,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-CURRENT_VERSION = "0.1.9"
+CURRENT_VERSION = "0.2.0"
 
 app = FastAPI(
     title="waka-relay",
@@ -42,6 +42,11 @@ RELAY_SIGNATURE = f"waka-relay/{CURRENT_VERSION}"
 
 USER_HOME = Path.home()
 CURRENT_DIR = Path(__file__).parent
+
+WARNINGS = {
+    "last_project": False,
+    "blank_project": False
+}
 
 CONFIG = {}
 CONFIG_PATHS = [
@@ -137,17 +142,46 @@ async def catch_everything(request: Request, full_path: str):
 
     start_time = time.perf_counter()
 
-    if CONFIG.get("debug", False):
-        with open("packets.log", "a", encoding="utf8") as f:
-            f.write(
-                f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} - {request.method} {request.url}\n"
-            )
-            if is_heartbeat(request):
-                incoming_body = await request.body()
-                try:
-                    body_json = json.loads(incoming_body.decode("utf-8"))
+    if is_heartbeat(request):
+        incoming_body = await request.body()
+        try:
+            body_json = json.loads(incoming_body.decode("utf-8"))
+            # check for common extension issues and set the warn flags
+            issues = set()
+            if isinstance(body_json, list):
+                for item in body_json:
+                    if isinstance(item, dict):
+                        if item.get("project") == "":
+                            WARNINGS["blank_project"] = True
+                            issues.add("blank_project")
+                        elif item.get("project") == "<<LAST_PROJECT>>":
+                            WARNINGS["last_project"] = True
+                            issues.add("last_project")
+            elif isinstance(body_json, dict):
+                if body_json.get("project") == "":
+                    WARNINGS["blank_project"] = True
+                    issues.add("blank_project")
+                elif body_json.get("project") == "<<LAST_PROJECT>>":
+                    WARNINGS["last_project"] = True
+                    issues.add("last_project")
+
+            # clear issues if they are not present
+            for issue in WARNINGS:
+                if issue not in issues:
+                    WARNINGS[issue] = False
+
+            if CONFIG.get("debug", False):
+                with open("packets.log", "a", encoding="utf8") as f:
+                    f.write(
+                        f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} - {request.method} {request.url}\n"
+                    )
                     json.dump(body_json, f, ensure_ascii=False, indent=4)
-                except (json.JSONDecodeError, UnicodeDecodeError):
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            if CONFIG.get("debug", False):
+                with open("packets.log", "a", encoding="utf8") as f:
+                    f.write(
+                        f"\n{time.strftime('%Y-%m-%d %H:%M:%S')} - {request.method} {request.url}\n"
+                    )
                     f.write(f"Raw body: {str(incoming_body)}\n")
 
     instances = CONFIG.get("instances", {})
@@ -195,10 +229,19 @@ async def catch_everything(request: Request, full_path: str):
                 "time_text", "%TEXT% (Relayed)"
             ).replace("%TEXT%", grand_total["text"])
 
+        # append issues to the end
+        if WARNINGS["last_project"]:
+            primary_response["response"]["data"]["grand_total"][
+                "text"
+            ] += " (⚠ <<LAST_PROJECT>> WARNING ⚠)"
+        if WARNINGS["blank_project"]:
+            primary_response["response"]["data"]["grand_total"][
+                "text"
+            ] += " (⚠ BLANK PROJECT WARNING ⚠)"
+
     # fix for heartbeats.bulk endpoint to match the format expected by wakatime-cli
     if is_heartbeat(request) and isinstance(primary_response["response"], list):
-        if isinstance(primary_response["response"], list):
-            primary_response["response"] = {"responses": primary_response["response"]}
+        primary_response["response"] = {"responses": primary_response["response"]}
 
     logging.info(  # mimic gunicorn's log format (but with request time)
         '%s - %i ms - "%s %s HTTP/%s" %s %s',

@@ -195,3 +195,7 @@ This relay is compatible with the following backend servers:
 ## Issues
 
 Please feel free to [open an issue](https://github.com/ImShyMike/waka-relay/issues/new) on the github if you come across a bug or crash as this project has not been fully tested and may have some bugs.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=imshymike/waka-relay&type=Timeline)](https://www.star-history.com/#imshymike/waka-relay&Timeline)

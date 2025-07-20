@@ -63,13 +63,16 @@ $ waka-relay
 
 ### Uv
 
-Using the [uv](https://docs.astral.sh/uv) package manager (this method does not require a [venv](https://docs.python.org/3/library/venv.html) on non Windows systems):
+Using the [uv](https://docs.astral.sh/uv) package manager (this method does not require a [venv](https://docs.python.org/3/library/venv.html) on non Windows systems) and is usually the preferred option:
 
 ```bash
-# Install the tool
+# Install the tool (system wide command)
 $ uv tool install waka-relay
 
 # Run it
+$ waka-relay
+
+# Run it (without installing the command)
 $ uv tool run waka-relay
 ```
 
@@ -146,7 +149,7 @@ api_url = http://localhost:25892
 
 ![waka-relay graph](https://raw.githubusercontent.com/ImShyMike/waka-relay/refs/heads/main/assets/graph.png)
 
-A "WakaTime instance" does not need to be the real WakaTime server but it can also be anything that implements the same protocol. ([compatible instance backends](#known-compatible-backends))
+A "WakaTime instance" does not need to be the real WakaTime server, it can also be anything that implements the same protocol. ([compatible backends](#known-compatible-backends))
 
 ## Example config
 
@@ -182,7 +185,7 @@ For a full config example with an explanation check out the [example config file
 
 ## Known compatible backends
 
-This relay is compatible with the following backend servers:
+This relay is know to be compatible with the following backend servers:
 
 * [WakaTime](https://github.com/wakatime)
 * [Wakapi](https://github.com/muety/wakapi)
@@ -191,6 +194,8 @@ This relay is compatible with the following backend servers:
 * [OtterTime](https://github.com/SkyfallWasTaken/ottertime)
 
 <sub>(all of the above servers were tested using the vscode extension)</sub>
+
+Others may work, this is just a list of the ones that were tested and are compatible.
 
 ## Issues
 

@@ -31,6 +31,7 @@
 * ✅ Multi-instance support
 * ✅ Self-hosted
 * ✅ Key authentication
+* ✅ Invalid project warnings
 * ✅ Highly configurable
 * ✅ Fully relays WakaTime requests
 
